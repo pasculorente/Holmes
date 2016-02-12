@@ -17,14 +17,36 @@
 
 package core;
 
+import java.io.File;
+
 /**
  * Date created 11/02/16
  *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
 public class Caller extends WTask {
+    private final static File GATK = new File("lib", "GenomeAnalysisTK.jar");
+
+    private final File input;
+    private final File genome;
+    private final File dbSNP;
+    private final File output;
+
+    public Caller(File input, File genome, File dbSNP, File output) {
+        this.input = input;
+        this.genome = genome;
+        this.dbSNP = dbSNP;
+        this.output = output;
+    }
+
     @Override
     public void start() {
-
+        setTitle("Calling variants");
+        execute("java", "-jar", GATK,
+                "-T", "HaplotypeCaller", "-R", genome,
+                "-I", input, "-o", output,
+                "--dbsnp", dbSNP);
     }
+
+
 }

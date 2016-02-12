@@ -32,6 +32,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Date created 8/02/16
@@ -47,12 +49,14 @@ public class AlignerTool extends Wtool {
     private final FileParameter mills = new FileParameter(FileParameter.Mode.OPEN, "Mills");
     private final FileParameter phase1 = new FileParameter(FileParameter.Mode.OPEN, "1000 genomes phase 1 indels");
     private final ComboBox<Encoding> encoding = new ComboBox<>(FXCollections.observableArrayList(Encoding.values()));
+    final Button start = new Button("Start", new SizableImage("img/align.png", SizableImage.MEDIUM));
 
     /**
      * Graphical interface to call an Aligner
      **/
     public AlignerTool() {
         forward.getFilters().add(WExtensions.FASTQ_FILTER);
+        if (WhiteSuit.getProperties().containsKey("sequences.forward")) forward.setFile(new File(WhiteSuit.getProperties().getProperty("sequences.forward")));
         reverse.getFilters().add(WExtensions.FASTQ_FILTER);
         genome.getFilters().add(WExtensions.FASTA_FILTER);
         dbSNP.getFilters().add(WExtensions.VCF_FILTER);
@@ -60,7 +64,6 @@ public class AlignerTool extends Wtool {
         phase1.getFilters().add(WExtensions.VCF_FILTER);
         encoding.setPromptText("Encoding");
 
-        final Button start = new Button("Start", new SizableImage("img/align.png", SizableImage.MEDIUM));
         start.setMaxWidth(Double.MAX_VALUE);
         start.setAlignment(Pos.CENTER);
         start.setOnAction(event -> start(removeExtension(forward.getFile().getName())));
@@ -82,22 +85,34 @@ public class AlignerTool extends Wtool {
     }
 
     private void start(String name) {
-        File output = selectOuput(name);
+        File output = selectOutput(name);
         if (output != null) {
             if (!output.getName().endsWith(".bam")) output = new File(output.getParent(), output.getName() + ".bam");
             final Aligner aligner = new Aligner(forward.getFile(), reverse.getFile(), genome.getFile(), dbSNP.getFile(),
                     mills.getFile(), phase1.getFile(), encoding.getValue(), output);
+            disableStartButton(3000);
             WhiteSuit.executeTask(aligner);
         }
 
     }
 
-    private File selectOuput(String name) {
+    private File selectOutput(String name) {
         final FileChooser chooser = new FileChooser();
         chooser.getExtensionFilters().add(WExtensions.BAM_FILTER);
         chooser.setTitle("Save BAM file");
         chooser.setInitialFileName(name + ".bam");
+        chooser.setInitialDirectory(forward.getFile().getParentFile());
         return chooser.showSaveDialog(WhiteSuit.getPrimaryStage());
     }
 
+    private void disableStartButton(long millis) {
+        start.setDisable(true);
+        final Timer lateButton = new Timer();
+        lateButton.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                start.setDisable(false);
+            }
+        }, millis);
+    }
 }

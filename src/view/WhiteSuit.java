@@ -22,10 +22,18 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Properties;
+
 public class WhiteSuit extends Application {
 
     private static Stage primaryStage;
     private static MainView mainView;
+
+    private static final Properties properties = new Properties();
 
     public static void main(String[] args) {
         launch(args);
@@ -35,10 +43,15 @@ public class WhiteSuit extends Application {
         return primaryStage;
     }
 
+    public static void executeTask(WTask task) {
+        mainView.executeTask(task);
+    }
+
     @Override
     public void start(Stage primaryStage) {
         WhiteSuit.primaryStage = primaryStage;
-        mainView  = new MainView();
+        loadProperties();
+        mainView = new MainView();
         final Scene scene = new Scene(mainView);
         scene.getStylesheets().add("css/default.css");
         primaryStage.setScene(scene);
@@ -46,7 +59,26 @@ public class WhiteSuit extends Application {
         primaryStage.show();
     }
 
-    public static void executeTask(WTask task) {
-        mainView.executeTask(task);
+    private void loadProperties() {
+        try {
+            if (new File("whitesuit.properties").exists())
+                properties.load(new FileInputStream("whitesuit.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(){
+            @Override
+            public void run() {
+                try {
+                    properties.store(new FileOutputStream("whitesuit.properties"), null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public static Properties getProperties() {
+        return properties;
     }
 }

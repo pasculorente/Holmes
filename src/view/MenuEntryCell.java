@@ -38,6 +38,7 @@ public class MenuEntryCell extends ListCell<WToolMenuEntry> {
 
     public MenuEntryCell() {
         title.getStyleClass().add("title");
+        getStyleClass().add("menu-entry");
     }
 
     @Override

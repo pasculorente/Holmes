@@ -19,8 +19,11 @@ package view;
 
 import core.WTask;
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
@@ -41,6 +44,7 @@ public class MainView extends BorderPane {
     private final ListView<WToolMenuEntry> toolsList = new ListView<>();
     private final Button back = new Button("Back", new SizableImage("img/arrow-left.png", SizableImage.MEDIUM));
     private final TabPane progressPane = new TabPane();
+    private final SplitPane splitPane = new SplitPane(toolsList);
 
     public MainView() {
         toolsList.getItems().addAll(new AlignerMenuEntry(), new CallerMenuEntry());
@@ -49,44 +53,78 @@ public class MainView extends BorderPane {
             if (event.getClickCount() >= 2) select(toolsList.getSelectionModel().getSelectedItem());
         });
         toolsList.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) select(toolsList.getSelectionModel().getSelectedItem());
+            if (event.getCode() == KeyCode.ENTER && toolsList.getSelectionModel().getSelectedItem() != null)
+                select(toolsList.getSelectionModel().getSelectedItem());
         });
         toolsList.setMaxWidth(Double.MAX_VALUE);
+        toolsList.getStyleClass().add("tools-list");
 
-        back.setOnAction(event -> setCenter(toolsList));
+        back.setOnAction(event -> setView(toolsList));
         back.setMaxWidth(9999);
         back.setAlignment(Pos.CENTER_LEFT);
 
         setPadding(new Insets(5));
-        setCenter(toolsList);
-        setBottom(progressPane);
+        splitPane.setOrientation(Orientation.VERTICAL);
+        progressPane.getTabs().addListener((ListChangeListener<? super Tab>) c -> {
+            if (progressPane.getTabs().isEmpty()) splitPane.getItems().remove(progressPane);
+            else if (!splitPane.getItems().contains(progressPane)) splitPane.getItems().add(progressPane);
+        });
+        setCenter(splitPane);
     }
 
     private void select(WToolMenuEntry selectedItem) {
-        setCenter(new VBox(5, back, selectedItem.getTool()));
+        setView(new VBox(5, back, selectedItem.getTool()));
     }
 
     public void executeTask(WTask wTask) {
-        final Button cancel = new Button("Cancel", new SizableImage("img/stop.png", SizableImage.SMALL));
-        cancel.setOnAction(event -> wTask.cancel());
-
-        final TextArea textArea = new TextArea();
-        textArea.setEditable(false);
-        VBox.setVgrow(textArea, Priority.ALWAYS);
-
-        final PrintStream printStream = new PrintStream(new TextAreaOutputStream(textArea));
-        wTask.setPrintStream(printStream);
-
-        final Tab tab = new Tab();
-        wTask.titleProperty().addListener((observable, oldValue, newValue) -> Platform.runLater(() -> tab.setText(newValue)));
+        final Tab tab = getTab(wTask);
+        final TextArea textArea = getTextArea(wTask);
+        final Button cancel = getCancelButton(wTask, tab);
 
         final VBox vBox = new VBox(5, cancel, textArea);
         vBox.setAlignment(Pos.CENTER);
         vBox.setPadding(new Insets(5));
         tab.setContent(vBox);
 
+        addOnSuccessMethod(wTask, tab, cancel);
+
         progressPane.getTabs().add(tab);
         new Thread(wTask).start();
+    }
+
+    private void addOnSuccessMethod(WTask wTask, Tab tab, Button cancel) {
+        wTask.terminatedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                tab.setClosable(true);
+                cancel.setDisable(true);
+            }
+        });
+    }
+
+    private Button getCancelButton(WTask wTask, Tab tab) {
+        final Button cancel = new Button("Cancel", new SizableImage("img/stop.png", SizableImage.SMALL));
+        cancel.setOnAction(event -> {
+            wTask.cancel();
+            tab.setClosable(true);
+        });
+        return cancel;
+    }
+
+    private TextArea getTextArea(WTask wTask) {
+        final TextArea textArea = new TextArea();
+        textArea.setEditable(false);
+        VBox.setVgrow(textArea, Priority.ALWAYS);
+
+        final PrintStream printStream = new PrintStream(new TextAreaOutputStream(textArea));
+        wTask.setPrintStream(printStream);
+        return textArea;
+    }
+
+    private Tab getTab(WTask wTask) {
+        final Tab tab = new Tab();
+        wTask.titleProperty().addListener((observable, oldValue, newValue) -> Platform.runLater(() -> tab.setText(newValue)));
+        tab.setClosable(false);
+        return tab;
     }
 
     private class TextAreaOutputStream extends OutputStream {
@@ -99,8 +137,12 @@ public class MainView extends BorderPane {
 
         @Override
         public void write(int b) throws IOException {
-                Platform.runLater(() -> textArea.appendText(String.valueOf((char) b)));
+            Platform.runLater(() -> textArea.appendText(String.valueOf((char) b)));
         }
+    }
+
+    void setView(Node node) {
+        splitPane.getItems().set(0, node);
     }
 
 }

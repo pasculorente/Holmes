@@ -39,10 +39,12 @@ public abstract class WTask implements Runnable {
     private Process process;
     private final Property<String> title = new SimpleObjectProperty<>();
     private final Property<Boolean> cancelled = new SimpleObjectProperty<>(false);
+    private final Property<Boolean> terminated = new SimpleObjectProperty<>(false);
 
     @Override
     public void run() {
         start();
+        terminated.setValue(true);
     }
 
     public abstract void start();
@@ -113,8 +115,9 @@ public abstract class WTask implements Runnable {
     }
 
     public void cancel() {
-        cancelled.setValue(true);
         if (process != null) process.destroy();
+        cancelled.setValue(true);
+        terminated.setValue(true);
     }
 
     public Property<Boolean> cancelledProperty() {
@@ -123,5 +126,9 @@ public abstract class WTask implements Runnable {
 
     public Boolean isCancelled() {
         return cancelled.getValue();
+    }
+
+    public Property<Boolean> terminatedProperty() {
+        return terminated;
     }
 }
