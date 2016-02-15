@@ -53,6 +53,7 @@ public class WhiteSuit extends Application {
         loadProperties();
         mainView = new MainView();
         final Scene scene = new Scene(mainView);
+        mainView.setPrefSize(800, 600);
         scene.getStylesheets().add("css/default.css");
         primaryStage.setScene(scene);
         primaryStage.setTitle("WhiteSuit");

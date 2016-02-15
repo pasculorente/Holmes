@@ -115,7 +115,7 @@ public class Aligner extends WTask {
     private File alignSequences(File sequences) {
         try {
             final File tempFile = File.createTempFile("seq1", ".sai");
-            final int ret = (encoding == Encoding.PHRED33)
+            final int ret = (encoding == Encoding.PHRED64)
                     ? execute("bwa", "aln", "-t", cores, "-I", genome, sequences, "-f", tempFile)
                     : execute("bwa", "aln", "-t", cores, genome, sequences, "-f", tempFile);
             return ret == 0 ? tempFile : null;
@@ -128,8 +128,8 @@ public class Aligner extends WTask {
     private File matchPairs(File seq1, File seq2) {
         try {
             final File tempFile = File.createTempFile("alignments", ".bam");
-            int ret = execute("bwa", "sampe", "-P", "-f", tempFile, genome, seq1, seq2, forward, reverse);
-            return ret == 0 ? tempFile : null;
+            return execute("bwa", "sampe", "-P", "-f", tempFile, genome, seq1, seq2, forward, reverse) == 0
+                    ? tempFile : null;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -247,7 +247,7 @@ public class Aligner extends WTask {
     private File realign(File alignments, File intervals) {
         try {
             final File realignments = File.createTempFile("realignments", ".bam");
-            int ret = execute("java", "-jar", "lib/GenomeAnalysisTK.jar",
+            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "IndelRealigner",
                     "-R", genome, "-I", alignments,
                     "-known", mills, "-known", phase1,
@@ -269,7 +269,7 @@ public class Aligner extends WTask {
     private File createRecalibratorTable(File alignments) {
         try {
             final File table = File.createTempFile("recal", null);
-            int ret = execute("java", "-jar", GATK,
+            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "BaseRecalibrator",
                     "-I", alignments,
                     "-R", genome,
@@ -287,7 +287,7 @@ public class Aligner extends WTask {
     private File recalibrate(File alignments, File table) {
         try {
             final File realignments = File.createTempFile("realignments", ".bam");
-            int ret = execute("java", "-jar", GATK,
+            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "PrintReads",
                     "-R", genome,
                     "-I", alignments,

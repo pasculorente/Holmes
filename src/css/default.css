@@ -7,6 +7,5 @@
 }
 
 .menu-entry {
-    -fx-background-color: white;
-
+    -fx-max-width: 9999;
 }

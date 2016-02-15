@@ -15,36 +15,10 @@
  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package view;
-
-import javafx.scene.image.Image;
+package core;
 
 /**
- * Date created 8/02/16
- *
- * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
+ * Created by uichuimi on 15/02/16.
  */
-public class AlignerMenuEntry implements WToolMenuEntry {
-
-    private final AlignerTool alignerTool = AlignerTool.getInstance();
-
-    @Override
-    public String getName() {
-        return "Aligner";
-    }
-
-    @Override
-    public String getDescription() {
-        return "Align paired-end sequences";
-    }
-
-    @Override
-    public Image getIcon() {
-        return new Image("img/align.png");
-    }
-
-    @Override
-    public Wtool getTool() {
-        return alignerTool;
-    }
+public class Mist {
 }

@@ -17,34 +17,21 @@
 
 package view;
 
-import javafx.scene.image.Image;
+import javafx.beans.NamedArg;
+import javafx.event.Event;
+import javafx.event.EventType;
+import javafx.scene.Node;
 
 /**
- * Date created 8/02/16
- *
- * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
+ * Created by root on 15/02/16.
  */
-public class AlignerMenuEntry implements WToolMenuEntry {
-
-    private final AlignerTool alignerTool = AlignerTool.getInstance();
-
-    @Override
-    public String getName() {
-        return "Aligner";
+public class ToolEvent extends Event {
+    public ToolEvent(@NamedArg("eventType") EventType<? extends Event> eventType) {
+        super(eventType);
     }
 
-    @Override
-    public String getDescription() {
-        return "Align paired-end sequences";
-    }
 
-    @Override
-    public Image getIcon() {
-        return new Image("img/align.png");
-    }
-
-    @Override
-    public Wtool getTool() {
-        return alignerTool;
+    public Node getView() {
+        return null;
     }
 }

@@ -20,6 +20,7 @@ package view;
 import core.WTask;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -41,24 +42,15 @@ import java.io.PrintStream;
  */
 public class MainView extends BorderPane {
 
-    private final ListView<WToolMenuEntry> toolsList = new ListView<>();
+    private final ToolsList toolsList = new ToolsList(this);
     private final Button back = new Button("Back", new SizableImage("img/arrow-left.png", SizableImage.MEDIUM));
     private final TabPane progressPane = new TabPane();
     private final SplitPane splitPane = new SplitPane(toolsList);
 
     public MainView() {
-        toolsList.getItems().addAll(new AlignerMenuEntry(), new CallerMenuEntry());
-        toolsList.setCellFactory(param -> new MenuEntryCell());
-        toolsList.setOnMouseClicked(event -> {
-            if (event.getClickCount() >= 2) select(toolsList.getSelectionModel().getSelectedItem());
-        });
-        toolsList.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER && toolsList.getSelectionModel().getSelectedItem() != null)
-                select(toolsList.getSelectionModel().getSelectedItem());
-        });
+        toolsList.addTools(new AlignerMenuEntry(), new CallerMenuEntry());
         toolsList.setMaxWidth(Double.MAX_VALUE);
         toolsList.getStyleClass().add("tools-list");
-
         back.setOnAction(event -> setView(toolsList));
         back.setMaxWidth(9999);
         back.setAlignment(Pos.CENTER_LEFT);
@@ -72,8 +64,8 @@ public class MainView extends BorderPane {
         setCenter(splitPane);
     }
 
-    private void select(WToolMenuEntry selectedItem) {
-        setView(new VBox(5, back, selectedItem.getTool()));
+    public void select(Wtool selectedItem) {
+        setView(new VBox(5, back, selectedItem));
     }
 
     public void executeTask(WTask wTask) {
@@ -141,7 +133,7 @@ public class MainView extends BorderPane {
         }
     }
 
-    void setView(Node node) {
+    private void setView(Node node) {
         splitPane.getItems().set(0, node);
     }
 

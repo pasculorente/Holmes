@@ -36,12 +36,16 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
+ * This is the Graphical User Interface to call the Aligner Tool. This class is a singleton, you must call
+ * <code>AlignerTool.getInstance()</code> method.
+ * <p>
  * Date created 8/02/16
  *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
 public class AlignerTool extends Wtool {
 
+    final Button start = new Button("Start", new SizableImage("img/align.png", SizableImage.MEDIUM));
     private final FileParameter forward = new FileParameter(FileParameter.Mode.OPEN, "Forward sequences");
     private final FileParameter reverse = new FileParameter(FileParameter.Mode.OPEN, "Reverse sequences");
     private final FileParameter genome = new FileParameter(FileParameter.Mode.OPEN, "Genome (GRCh37)");
@@ -49,20 +53,23 @@ public class AlignerTool extends Wtool {
     private final FileParameter mills = new FileParameter(FileParameter.Mode.OPEN, "Mills");
     private final FileParameter phase1 = new FileParameter(FileParameter.Mode.OPEN, "1000 genomes phase 1 indels");
     private final ComboBox<Encoding> encoding = new ComboBox<>(FXCollections.observableArrayList(Encoding.values()));
-    final Button start = new Button("Start", new SizableImage("img/align.png", SizableImage.MEDIUM));
 
+    private final static AlignerTool alignerTool = new AlignerTool();
     /**
      * Graphical interface to call an Aligner
      **/
-    public AlignerTool() {
+    private AlignerTool() {
         forward.getFilters().add(WExtensions.FASTQ_FILTER);
-        if (WhiteSuit.getProperties().containsKey("sequences.forward")) forward.setFile(new File(WhiteSuit.getProperties().getProperty("sequences.forward")));
         reverse.getFilters().add(WExtensions.FASTQ_FILTER);
         genome.getFilters().add(WExtensions.FASTA_FILTER);
         dbSNP.getFilters().add(WExtensions.VCF_FILTER);
         mills.getFilters().add(WExtensions.VCF_FILTER);
         phase1.getFilters().add(WExtensions.VCF_FILTER);
         encoding.setPromptText("Encoding");
+        setBackUp(genome, "reference.genome");
+        setBackUp(dbSNP, "dbSNP");
+        setBackUp(mills, "mills");
+        setBackUp(phase1, "phase1");
 
         start.setMaxWidth(Double.MAX_VALUE);
         start.setAlignment(Pos.CENTER);
@@ -79,6 +86,22 @@ public class AlignerTool extends Wtool {
         setCenter(scrollPane);
     }
 
+    /**
+     * Gets the Graphical User Interface to call the Aligner.
+     * @return the AlignerTool
+     */
+    public static AlignerTool getInstance() {
+        return alignerTool;
+    }
+
+    private void setBackUp(FileParameter parameter, String key) {
+        if (WhiteSuit.getProperties().containsKey(key))
+            parameter.setFile(new File(WhiteSuit.getProperties().getProperty(key)));
+        parameter.fileProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) WhiteSuit.getProperties().setProperty(key, newValue.getAbsolutePath());
+        });
+    }
+
     private String removeExtension(String fileName) {
         int indexOf = fileName.indexOf('.');
         return fileName.substring(0, indexOf);
@@ -93,7 +116,6 @@ public class AlignerTool extends Wtool {
             disableStartButton(3000);
             WhiteSuit.executeTask(aligner);
         }
-
     }
 
     private File selectOutput(String name) {
