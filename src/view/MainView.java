@@ -48,7 +48,7 @@ public class MainView extends BorderPane {
     private final SplitPane splitPane = new SplitPane(toolsList);
 
     public MainView() {
-        toolsList.addTools(new AlignerMenuEntry(), new CallerMenuEntry());
+        toolsList.addTools(new AlignerMenuEntry(), new CallerMenuEntry(), new MistMenuEntry());
         toolsList.setMaxWidth(Double.MAX_VALUE);
         toolsList.getStyleClass().add("tools-list");
         back.setOnAction(event -> setView(toolsList));
