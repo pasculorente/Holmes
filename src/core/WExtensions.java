@@ -21,7 +21,7 @@ import javafx.stage.FileChooser;
 
 /**
  * Date created 11/02/16
- *
+ * <p>
  * Constants with the extensions of files.
  *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
@@ -31,4 +31,9 @@ public class WExtensions {
     public static final FileChooser.ExtensionFilter FASTA_FILTER = new FileChooser.ExtensionFilter("FASTA", "*fasta", "*.fa", "*.fasta.gz", "*.fa.gz");
     public static final FileChooser.ExtensionFilter VCF_FILTER = new FileChooser.ExtensionFilter("Variant Call Format", "*.vcf", "*.vcf.gz");
     public static final FileChooser.ExtensionFilter BAM_FILTER = new FileChooser.ExtensionFilter("Binary Alingment/Mapping Format", "*.bam");
+    public static final FileChooser.ExtensionFilter TXT_FILTER = new FileChooser.ExtensionFilter("Text file", "*.txt");
+    /**
+     * Filters MIST files (.mist)
+     */
+    public static final FileChooser.ExtensionFilter MIST_FILTER = new FileChooser.ExtensionFilter("Missing sequences tool format (.mist)", "*.mist");
 }

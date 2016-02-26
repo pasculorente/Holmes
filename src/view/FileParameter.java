@@ -92,6 +92,7 @@ public class FileParameter extends HBox {
         chooser.getExtensionFilters().setAll(filters);
         if (file.getValue() != null) chooser.setInitialDirectory(file.getValue().getParentFile());
         else if (lastPath != null) chooser.setInitialDirectory(lastPath);
+        if (chooser.getInitialDirectory() != null && !chooser.getInitialDirectory().exists()) chooser.setInitialDirectory(null);
         chooser.setTitle("Select " + title);
         final File file = mode == Mode.OPEN
                 ? chooser.showOpenDialog(WhiteSuit.getPrimaryStage())

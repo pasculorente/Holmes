@@ -19,11 +19,25 @@ package view;
 
 import javafx.scene.layout.BorderPane;
 
+import java.io.File;
+
 /**
  * Date created 8/02/16
  *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
-public abstract class Wtool extends BorderPane {
+public abstract class ToolInterface extends BorderPane {
 
+    protected static final int DEFAULT_SPACING = 20;
+    protected static final int DEFAULT_PADDING = 20;
+
+    protected void setBackUp(FileParameter parameter, String key) {
+        if (WhiteSuit.getProperties().containsKey(key))
+            parameter.setFile(new File(WhiteSuit.getProperties().getProperty(key)));
+        parameter.fileProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) WhiteSuit.getProperties().setProperty(key, newValue.getAbsolutePath());
+        });
+    }
+
+    abstract void start();
 }

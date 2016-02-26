@@ -17,22 +17,31 @@
 
 package view;
 
-import javafx.scene.layout.VBox;
+import javafx.scene.image.Image;
 
 /**
- * Created by uichuimi on 15/02/16.
+ * Created by uichuimi on 16/02/16.
  *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
-public class MistTool extends Wtool {
-
-    private final static MistTool mistTool = new MistTool();
-
-    public static MistTool getInstance() {
-        return mistTool;
+public class AnnotatorMenuEntry implements WToolMenuEntry {
+    @Override
+    public String getName() {
+        return "VEP annotator";
     }
 
-    private MistTool() {
-        setCenter(new VBox());
+    @Override
+    public String getDescription() {
+        return "Annotate variants using VEP from Ensembl (R)";
+    }
+
+    @Override
+    public Image getIcon() {
+        return new Image("img/annotate.png");
+    }
+
+    @Override
+    public ToolInterface getTool() {
+        return AnnotatorInterface.getInstance();
     }
 }

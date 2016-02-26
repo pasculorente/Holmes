@@ -32,5 +32,5 @@ public interface WToolMenuEntry {
 
     Image getIcon();
 
-    Wtool getTool();
+    ToolInterface getTool();
 }

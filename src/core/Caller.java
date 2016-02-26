@@ -18,6 +18,9 @@
 package core;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Date created 11/02/16
@@ -25,14 +28,15 @@ import java.io.File;
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
 public class Caller extends WTask {
+
     private final static File GATK = new File("lib", "GenomeAnalysisTK.jar");
 
-    private final File input;
+    private final List<File> input;
     private final File genome;
     private final File dbSNP;
     private final File output;
 
-    public Caller(File input, File genome, File dbSNP, File output) {
+    public Caller(List<File> input, File genome, File dbSNP, File output) {
         this.input = input;
         this.genome = genome;
         this.dbSNP = dbSNP;
@@ -42,10 +46,12 @@ public class Caller extends WTask {
     @Override
     public void start() {
         setTitle("Calling variants");
-        execute("java", "-jar", GATK,
-                "-T", "HaplotypeCaller", "-R", genome,
-                "-I", input, "-o", output,
-                "--dbsnp", dbSNP);
+        final List<String> command = new ArrayList<>();
+        command.addAll(Arrays.asList("java", "-jar", GATK.getAbsolutePath(),
+                "-T", "HaplotypeCaller", "-R", genome.getAbsolutePath(),
+                "-o", output.getAbsolutePath(), "-D", dbSNP.getAbsolutePath()));
+        input.forEach(file -> command.addAll(Arrays.asList("-I", file.getAbsolutePath())));
+        execute(command);
     }
 
 

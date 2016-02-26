@@ -9,3 +9,16 @@
 .menu-entry {
     -fx-max-width: 9999;
 }
+
+/* Buttons that only show an icon, hover and pressed are only made by decreasing the opacity*/
+.graphic-button {
+    -fx-background-color: transparent;
+}
+
+.graphic-button:hover {
+    -fx-opacity: 0.5;
+}
+
+.graphic-button:pressed {
+    -fx-opacity: 0.25;
+}

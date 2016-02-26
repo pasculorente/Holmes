@@ -202,10 +202,18 @@ public class Mist extends WTask {
      * @param output
      */
     private void writeHeader(File output) {
-        if (output.exists()) {
-            output.delete();
+        if (output.exists()) output.delete();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(output))) {
+            writer.write("#length=" + length);
+            writer.newLine();
+            writer.write("#threshold=" + threshold);
+            writer.newLine();
+            writer.write("#" + asString("\t", headers));
+            writer.newLine();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        writeLine(output, headers);
+//        writeLine(output, headers);
     }
 
     /**
@@ -388,13 +396,10 @@ public class Mist extends WTask {
         try {
             process = pb.start();
             try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                in.lines().forEach(line -> {
-                    String[] row = line.split("\t");
-                    if (row[0].startsWith("@SQ")) {
-                        final String chr = row[1].substring(3);
-                        final int size = Integer.valueOf(row[2].substring(3));
-                        chroms.add(new Chromosome(chr, size));
-                    }
+                in.lines().filter(line -> line.startsWith("@SQ")).map(line -> line.split("\t")).forEach(row -> {
+                    final String chr = row[1].substring(3);
+                    final int size = Integer.valueOf(row[2].substring(3));
+                    chroms.add(new Chromosome(chr, size));
                 });
             } catch (IOException ex) {
                 ex.printStackTrace();

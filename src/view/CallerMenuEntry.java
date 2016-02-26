@@ -26,7 +26,7 @@ import javafx.scene.image.Image;
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
 public class CallerMenuEntry implements WToolMenuEntry {
-    private CallerTool callerTool = new CallerTool();
+    private CallerInterface callerInterface = new CallerInterface();
 
     @Override
     public String getName() {
@@ -44,7 +44,7 @@ public class CallerMenuEntry implements WToolMenuEntry {
     }
 
     @Override
-    public Wtool getTool() {
-        return callerTool;
+    public ToolInterface getTool() {
+        return callerInterface;
     }
 }

@@ -26,7 +26,7 @@ import javafx.scene.image.Image;
  */
 public class AlignerMenuEntry implements WToolMenuEntry {
 
-    private final AlignerTool alignerTool = AlignerTool.getInstance();
+    private final AlignerInterface alignerInterface = AlignerInterface.getInstance();
 
     @Override
     public String getName() {
@@ -44,7 +44,7 @@ public class AlignerMenuEntry implements WToolMenuEntry {
     }
 
     @Override
-    public Wtool getTool() {
-        return alignerTool;
+    public ToolInterface getTool() {
+        return alignerInterface;
     }
 }

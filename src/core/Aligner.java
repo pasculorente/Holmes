@@ -37,8 +37,6 @@ public class Aligner extends WTask {
     private final static String[] VOID_ARGS = {};
     private final static File GATK = new File("lib", "GenomeAnalysisTK.jar");
     private final static int TOTAL_STEPS = 10;
-    private int currentStep = 1;
-
     private final File forward;
     private final File reverse;
     private final File genome;
@@ -48,6 +46,7 @@ public class Aligner extends WTask {
     private final Encoding encoding;
     private final File output;
     private final int cores;
+    private int currentStep = 1;
 
     public Aligner(File forward, File reverse, File genome, File dbSNP, File mills, File phase1, Encoding encoding, File output) {
         this.forward = forward;
@@ -75,10 +74,9 @@ public class Aligner extends WTask {
         println("Encoding=" + encoding);
         File align = align();
         if (align == null) {
-            println("USer canceled");
-            setTitle("Error during alignments");
-        }
-        setTitle("Aligned correctly");
+            println("User canceled aligment");
+            setTitle("Error during alignment");
+        } else setTitle(output.getName() + " aligned correctly");
     }
 
     private File align() {
@@ -109,12 +107,13 @@ public class Aligner extends WTask {
     }
 
     private String getProgress() {
-        return String.format("(%d/%d)", currentStep++, TOTAL_STEPS);
+        return String.format(" (%d/%d)", currentStep++, TOTAL_STEPS);
     }
 
     private File alignSequences(File sequences) {
         try {
-            final File tempFile = File.createTempFile("seq1", ".sai");
+            final File tempFile = createTempFile("seq1", ".sai");
+            tempFile.deleteOnExit();
             final int ret = (encoding == Encoding.PHRED64)
                     ? execute("bwa", "aln", "-t", cores, "-I", genome, sequences, "-f", tempFile)
                     : execute("bwa", "aln", "-t", cores, genome, sequences, "-f", tempFile);
@@ -127,7 +126,8 @@ public class Aligner extends WTask {
 
     private File matchPairs(File seq1, File seq2) {
         try {
-            final File tempFile = File.createTempFile("alignments", ".bam");
+            final File tempFile = createTempFile("alignments", ".bam");
+            tempFile.deleteOnExit();
             return execute("bwa", "sampe", "-P", "-f", tempFile, genome, seq1, seq2, forward, reverse) == 0
                     ? tempFile : null;
         } catch (IOException e) {
@@ -162,35 +162,41 @@ public class Aligner extends WTask {
     }
 
     private File cleanSam(File input) throws IOException {
-        final File tempFile = File.createTempFile("picard1", ".bam");
+        final File tempFile = createTempFile("picard1", ".bam");
         final CleanSam cleanSam = new CleanSam();
         cleanSam.INPUT = input;
         cleanSam.OUTPUT = tempFile;
+        println("CleanSam INPUT=" + input.getAbsolutePath() + " OUTPUT=" + tempFile.getAbsolutePath());
         return cleanSam.instanceMain(VOID_ARGS) == 0 ? tempFile : null;
     }
 
     private File sortSam(File input) throws IOException {
-        final File tempFile = File.createTempFile("picard2", ".bam");
+        final File tempFile = createTempFile("picard2", ".bam");
         final SortSam sortSam = new SortSam();
         sortSam.INPUT = input;
         sortSam.SORT_ORDER = SAMFileHeader.SortOrder.coordinate;
         sortSam.OUTPUT = tempFile;
+        println("SortSam INPUT=" + input.getAbsolutePath() + " OUTPUT=" + tempFile.getAbsolutePath() + " SORT_ORDER=coordinate");
         return sortSam.instanceMain(VOID_ARGS) == 0 ? tempFile : null;
     }
 
     private File markDuplicates(File input) throws IOException {
-        final File tempFile = File.createTempFile("picard3", ".bam");
+        final File tempFile = createTempFile("picard3", ".bam");
         final MarkDuplicates markDuplicates = new MarkDuplicates();
         markDuplicates.ASSUME_SORTED = true;
         markDuplicates.INPUT = Collections.singletonList(input.getAbsolutePath());
         markDuplicates.OUTPUT = tempFile;
         markDuplicates.REMOVE_DUPLICATES = true;
-        markDuplicates.METRICS_FILE = File.createTempFile("metrics", null);
+        markDuplicates.METRICS_FILE = createTempFile("metrics", null);
+        println("MarkDuplicates INPUT=" + input.getAbsolutePath() +
+                " OUTPUT=" + tempFile.getAbsolutePath() +
+                " ASSUME_SORTED=true REMOVE_DUPLICATES=true" +
+                " METRICS_FILE=" + markDuplicates.METRICS_FILE.getAbsolutePath());
         return markDuplicates.instanceMain(VOID_ARGS) == 0 ? tempFile : null;
     }
 
     private File repairHeaders(File input) throws IOException {
-        final File tempFile = File.createTempFile("picard4", ".bam");
+        final File tempFile = createTempFile("picard4", ".bam");
         final AddOrReplaceReadGroups addOrReplaceReadGroups = new AddOrReplaceReadGroups();
         addOrReplaceReadGroups.INPUT = input.getAbsolutePath();
         addOrReplaceReadGroups.OUTPUT = tempFile;
@@ -198,12 +204,15 @@ public class Aligner extends WTask {
         addOrReplaceReadGroups.RGSM = output.getName().replace(".bam", "");
         addOrReplaceReadGroups.RGPU = "flowcell-barcode.lane";
         addOrReplaceReadGroups.RGLB = "BAITS";
+        println("AddOrReplaceReadGroups INPUT=" + input.getAbsolutePath() + " OUTPUT=" + tempFile.getAbsolutePath() +
+                " RGPL=ILLUMINA RGPU=flowcell-barcode.lane RGLB=BAITS RGSM=" + output.getName().replace(".bam", ""));
         return addOrReplaceReadGroups.instanceMain(VOID_ARGS) == 0 ? tempFile : null;
     }
 
     private boolean buildBamIndex(File input) {
         final BuildBamIndex buildBamIndex = new BuildBamIndex();
         buildBamIndex.INPUT = input.getAbsolutePath();
+        println("BuildBamIndex=" + input.getAbsolutePath());
         return buildBamIndex.instanceMain(VOID_ARGS) == 0;
     }
 
@@ -211,7 +220,7 @@ public class Aligner extends WTask {
         final File dict = new File(genome.getParent(), genome.getName().replace(".fasta", ".fa").replace(".fa", ".dict"));
         if (!dict.exists()) createDictionary();
         final File realignments = realign(alignments);
-        return reacalibrate(realignments);
+        return realignments != null ? reacalibrate(realignments) : null;
     }
 
     private void createDictionary() {
@@ -231,7 +240,7 @@ public class Aligner extends WTask {
 
     private File createTargets(File alignments) {
         try {
-            final File targets = File.createTempFile("targets", ".intervals");
+            final File targets = createTempFile("targets", ".intervals");
             int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "RealignerTargetCreator",
                     "-R", genome, "-I", alignments,
@@ -246,7 +255,7 @@ public class Aligner extends WTask {
 
     private File realign(File alignments, File intervals) {
         try {
-            final File realignments = File.createTempFile("realignments", ".bam");
+            final File realignments = createTempFile("realignments", ".bam");
             int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "IndelRealigner",
                     "-R", genome, "-I", alignments,
@@ -268,7 +277,7 @@ public class Aligner extends WTask {
 
     private File createRecalibratorTable(File alignments) {
         try {
-            final File table = File.createTempFile("recal", null);
+            final File table = createTempFile("recal", null);
             int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "BaseRecalibrator",
                     "-I", alignments,
@@ -286,7 +295,7 @@ public class Aligner extends WTask {
 
     private File recalibrate(File alignments, File table) {
         try {
-            final File realignments = File.createTempFile("realignments", ".bam");
+            final File realignments = createTempFile("realignments", ".bam");
             int ret = execute("java", "-jar", GATK.getAbsolutePath(),
                     "-T", "PrintReads",
                     "-R", genome,
@@ -298,6 +307,20 @@ public class Aligner extends WTask {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Creates a file in the system default temp directory, and marks the file to be deleted on exit.
+     *
+     * @param prefix file prefix. File name starts with the prefix followed by a unique id
+     * @param suffix file suffix. Usually an extension. Can be null
+     * @return a generated temp file that will be deleted on System exit
+     * @throws IOException If a file could not be created
+     */
+    private File createTempFile(String prefix, String suffix) throws IOException {
+        final File tempFile = File.createTempFile(prefix, suffix);
+        tempFile.deleteOnExit();
+        return tempFile;
     }
 
 

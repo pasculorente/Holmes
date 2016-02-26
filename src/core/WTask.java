@@ -35,16 +35,26 @@ import java.util.stream.Collectors;
  */
 public abstract class WTask implements Runnable {
 
+    /*
+     * Possible state transitions:
+     * NEW -> COMPLETING -> NORMAL
+     * NEW -> COMPLETING -> EXCEPTIONAL
+     * NEW -> CANCELLED
+     * NEW -> INTERRUPTING -> INTERRUPTED
+     */
+
+    private final Property<String> title = new SimpleObjectProperty<>();
+    private final Property<Boolean> newProperty = new SimpleObjectProperty<>(true);
+    private final Property<Boolean> cancelled = new SimpleObjectProperty<>(false);
+    private final Property<Boolean> completed = new SimpleObjectProperty<>(false);
     private PrintStream printStream = System.out;
     private Process process;
-    private final Property<String> title = new SimpleObjectProperty<>();
-    private final Property<Boolean> cancelled = new SimpleObjectProperty<>(false);
-    private final Property<Boolean> terminated = new SimpleObjectProperty<>(false);
 
     @Override
     public void run() {
+        newProperty.setValue(false);
         start();
-        terminated.setValue(true);
+        completed.setValue(true);
     }
 
     public abstract void start();
@@ -53,12 +63,12 @@ public abstract class WTask implements Runnable {
         this.printStream = printStream;
     }
 
-    protected void setTitle(String title) {
-        this.title.setValue(title);
-    }
-
     public String getTitle() {
         return title.getValue();
+    }
+
+    protected void setTitle(String title) {
+        this.title.setValue(title);
     }
 
     public Property<String> titleProperty() {
@@ -117,7 +127,7 @@ public abstract class WTask implements Runnable {
     public void cancel() {
         if (process != null) process.destroy();
         cancelled.setValue(true);
-        terminated.setValue(true);
+        completed.setValue(true);
     }
 
     public Property<Boolean> cancelledProperty() {
@@ -128,7 +138,23 @@ public abstract class WTask implements Runnable {
         return cancelled.getValue();
     }
 
-    public Property<Boolean> terminatedProperty() {
-        return terminated;
+    /**
+     * Whether this Task has been completed or not. A task is completed by finishing start method, or by cancelling it.
+     * You must check cancelledProperty to know what happened.
+     *
+     * @return
+     */
+    public Property<Boolean> completedProperty() {
+        return completed;
+    }
+
+    /**
+     * Tells whether this Task has been completed. A task is completed by finishing start method, or by cancelling it.
+     * You must check cancelledProperty to know what happened.
+     *
+     * @return true only if <code>start()</code> method has completed
+     */
+    public Boolean isTerminated() {
+        return completed.getValue();
     }
 }

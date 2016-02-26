@@ -26,12 +26,15 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 
 /**
- * Created by root on 15/02/16.
+ * Created on 15/02/16.
+ *
+ * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
+ *
  */
 public class ToolsList extends VBox {
 
     private final ObservableList<WToolMenuEntry> entries = FXCollections.observableArrayList();
-    private MainView mainView;
+    private final MainView mainView;
 
 
     public ToolsList(MainView mainView) {
@@ -43,12 +46,11 @@ public class ToolsList extends VBox {
             }
 
         });
-        setSpacing(5);
-        setPadding(new Insets(5));
+        setSpacing(20);
     }
 
     private Button getButton(WToolMenuEntry entry) {
-        MenuEntry menuEntry = new MenuEntry(entry);
+        final MenuEntry menuEntry = new MenuEntry(entry);
         menuEntry.setOnAction(event -> userSelected(entry));
         return menuEntry;
     }

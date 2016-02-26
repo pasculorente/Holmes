@@ -39,7 +39,7 @@ public class MistMenuEntry implements WToolMenuEntry {
     }
 
     @Override
-    public Wtool getTool() {
-        return MistTool.getInstance();
+    public ToolInterface getTool() {
+        return MistInterface.getInstance();
     }
 }

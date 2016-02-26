@@ -43,6 +43,9 @@ public class MenuEntry extends Button {
         title.setText(item.getName());
         description.setText(item.getDescription());
         imageView.setImage(item.getIcon());
+        imageView.setFitWidth(32);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
         setText(null);
         setGraphic(hBox);
     }

@@ -21,73 +21,59 @@ import core.Caller;
 import core.WExtensions;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 import java.io.File;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Date created 11/02/16
  *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
-public class CallerTool extends Wtool {
+public class CallerInterface extends ToolInterface {
 
-    private final FileParameter input = new FileParameter(FileParameter.Mode.OPEN, "Alignments");
+    //    private final FileParameter input = new FileParameter(FileParameter.Mode.OPEN, "Alignments");
     private final FileParameter genome = new FileParameter(FileParameter.Mode.OPEN, "Reference genome");
     private final FileParameter dbSNP = new FileParameter(FileParameter.Mode.OPEN, "dbSNP");
+    private FileList inputList = new FileList();
 
-    private final Button start = new Button("Start", new SizableImage("img/call.png", SizableImage.MEDIUM));
-
-    public CallerTool() {
-        input.getFilters().add(WExtensions.BAM_FILTER);
+    public CallerInterface() {
+        inputList.getFilters().add(WExtensions.BAM_FILTER);
+//        input.getFilters().add(WExtensions.BAM_FILTER);
         genome.getFilters().add(WExtensions.FASTA_FILTER);
         dbSNP.getFilters().add(WExtensions.VCF_FILTER);
+        setBackUp(genome, "reference.genome");
+        setBackUp(dbSNP, "dbSNP");
 
-        final VBox vBox = new VBox(5, input, new Separator(Orientation.HORIZONTAL), genome, dbSNP, start);
+        final VBox vBox = new VBox(DEFAULT_SPACING, inputList, new Separator(Orientation.HORIZONTAL), genome, dbSNP);
+        vBox.setPadding(new Insets(DEFAULT_PADDING));
+        final ScrollPane center = new ScrollPane(vBox);
+        center.setFitToHeight(true);
+        center.setFitToWidth(true);
 
-        start.setOnAction(event -> start());
-        start.setMaxWidth(9999);
-        start.setAlignment(Pos.CENTER);
-
-        vBox.setPadding(new Insets(5));
-        setCenter(vBox);
-
+        setCenter(center);
     }
 
-    private void start() {
-        if (input.getFile() == null || genome.getFile() == null || dbSNP == null) return;
+    @Override
+    void start() {
+        if (genome.getFile() == null || dbSNP.getFile() == null || inputList.getFiles().isEmpty()) return;
         File output = selectOutput();
         if (output != null) {
             if (!output.getName().endsWith(".vcf")) output = new File(output.getParent(), output.getName() + ".vcf");
-            final Caller caller = new Caller(input.getFile(), genome.getFile(), dbSNP.getFile(), output);
+            final Caller caller = new Caller(inputList.getFiles(), genome.getFile(), dbSNP.getFile(), output);
             WhiteSuit.executeTask(caller);
-            disableStartButton(3000);
         }
-    }
-
-    private void disableStartButton(long millis) {
-        start.setDisable(true);
-        final Timer lateButton = new Timer();
-        lateButton.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                start.setDisable(false);
-            }
-        }, millis);
     }
 
     private File selectOutput() {
         final FileChooser chooser = new FileChooser();
         chooser.getExtensionFilters().add(WExtensions.VCF_FILTER);
         chooser.setTitle("Save VCF file");
-        chooser.setInitialFileName(input.getFile().getName().replace(".bam", ".vcf"));
-        chooser.setInitialDirectory(input.getFile().getParentFile());
+        chooser.setInitialFileName(inputList.getFiles().get(0).getName().replace(".bam", ".vcf"));
+        chooser.setInitialDirectory(inputList.getFiles().get(0).getParentFile());
         return chooser.showSaveDialog(WhiteSuit.getPrimaryStage());
     }
 }

@@ -21,19 +21,22 @@ import core.WTask;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class WhiteSuit extends Application {
 
+    private final static List<WTask> RUNNING_TASKS = new ArrayList<>();
+    private static final Properties properties = new Properties();
     private static Stage primaryStage;
     private static MainView mainView;
-
-    private static final Properties properties = new Properties();
 
     public static void main(String[] args) {
         launch(args);
@@ -45,6 +48,14 @@ public class WhiteSuit extends Application {
 
     public static void executeTask(WTask task) {
         mainView.executeTask(task);
+        task.completedProperty().addListener((observable, previous, completed) -> {
+            if (completed) RUNNING_TASKS.remove(task);
+        });
+        RUNNING_TASKS.add(task);
+    }
+
+    public static Properties getProperties() {
+        return properties;
     }
 
     @Override
@@ -56,8 +67,27 @@ public class WhiteSuit extends Application {
         mainView.setPrefSize(800, 600);
         scene.getStylesheets().add("css/default.css");
         primaryStage.setScene(scene);
-        primaryStage.setTitle("WhiteSuit");
+        primaryStage.setTitle("ExomeSuite");
+        primaryStage.setOnCloseRequest(this::endRunningTasks);
         primaryStage.show();
+    }
+
+    private void endRunningTasks(WindowEvent event) {
+        if (!RUNNING_TASKS.isEmpty()) {
+            if (userWantsToExitAnyway()) RUNNING_TASKS.forEach(WTask::cancel);
+            else event.consume();
+        }
+    }
+
+    private boolean userWantsToExitAnyway() {
+        final ExitDialog exitDialog = new ExitDialog("There are still running tasks. Do you want to exit anyway?", "Yes, exit", "No, continue");
+        exitDialog.show(primaryStage);
+        return exitDialog.isExit();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        RUNNING_TASKS.forEach(WTask::cancel);
     }
 
     private void loadProperties() {
@@ -67,7 +97,7 @@ public class WhiteSuit extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(){
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
                 try {
@@ -77,9 +107,5 @@ public class WhiteSuit extends Application {
                 }
             }
         });
-    }
-
-    public static Properties getProperties() {
-        return properties;
     }
 }
