@@ -44,16 +44,6 @@ public class VcfFile {
         readFile(file);
     }
 
-    public VcfFile() {
-        this.header = new VcfHeader();
-    }
-
-    public VcfFile(VcfHeader header) {
-        this.header = header;
-        this.file = new File(System.currentTimeMillis() + ".vcf");
-        this.file.deleteOnExit();
-    }
-
     private void readFile(File file) {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             readLines(reader);
@@ -64,7 +54,7 @@ public class VcfFile {
 
     private void readLines(final BufferedReader reader) {
         reader.lines().forEach(line -> {
-            if (!line.startsWith("#")) variants.add(new Variant(line, this));
+            if (!line.startsWith("#")) variants.add(VariantFactory.createVariant(line, this));
             else header.addHeader(line);
         });
     }
@@ -84,10 +74,6 @@ public class VcfFile {
 
     public void setChanged(boolean changed) {
         this.changed.setValue(changed);
-    }
-
-    public Property<Boolean> changedProperty() {
-        return changed;
     }
 
     public void save(File file) {

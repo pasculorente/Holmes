@@ -17,6 +17,8 @@
 
 package core.vcf;
 
+import core.Dictionary;
+
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,17 +32,11 @@ public class VcfHeader {
     private static final Pattern META_LINE = Pattern.compile("##([^=]+)=(.+)");
     private static final Pattern META_LINE_CONTENT = Pattern.compile("<(.*)>");
     private static final Pattern FIELDS_LINE = Pattern.compile("#CHROM(.*)");
-
+    private static final Dictionary FORMAT_DICTIONARY = new Dictionary();
+    private static final Dictionary INFO_DICTIONARY = new Dictionary();
     private final Map<String, List<Map<String, String>>> complexHeaders = new TreeMap<>();
     private final Map<String, String> singleHeaders = new TreeMap<>();
-
     private final List<String> samples = new ArrayList<>();
-    private static final List<String> FORMAT_DICTIONARY = new LinkedList<>();
-    private static final List<String> INFO_DICTIONARY = new LinkedList<>();
-
-
-//    private Dictionary infoDictionary = new Dictionary();
-//    private Dictionary formatDictionary = new Dictionary();
 
     public void addHeader(String line) {
         final Matcher metaLine = META_LINE.matcher(line);
@@ -60,7 +56,7 @@ public class VcfHeader {
         complexHeaders.putIfAbsent(key, new ArrayList<>());
         final List<Map<String, String>> headers = complexHeaders.get(key);
         final Map<String, String> map = MapGenerator.parse(value);
-        if (!headerContainsId(key, headers)){
+        if (!headerContainsId(key, headers)) {
             headers.add(map);
             if (key.equals("INFO")) addInfo(map.get("ID"));
         }
@@ -157,46 +153,15 @@ public class VcfHeader {
 
 
     public int addInfo(String key) {
-        return addToDictionary(INFO_DICTIONARY, key);
-//        return FORMAT_DICTIONARY.add(key);
+        return INFO_DICTIONARY.add(key);
     }
 
     public int addFormat(String id) {
-        return addToDictionary(FORMAT_DICTIONARY, id);
-//        return formatDictionary.add(id);
-    }
-
-    private int addToDictionary(List<String> dictionary, String key) {
-        if (dictionary.contains(key)) return dictionary.indexOf(key);
-        dictionary.add(key);
-        return dictionary.indexOf(key);
+        return FORMAT_DICTIONARY.add(id);
     }
 
     public int getFormatIndex(String id) {
         return FORMAT_DICTIONARY.indexOf(id);
-//        return formatDictionary.indexOf(id);
     }
 
-    public int getInfoIndex(String id) {
-        return INFO_DICTIONARY.indexOf(id);
-//        return infoDictionary.indexOf(id);
-    }
-
-    public String getInfo(int code) {
-        return INFO_DICTIONARY.get(code);
-    }
-
-    public String getFormat(int code) {
-        return FORMAT_DICTIONARY.get(code);
-//        return formatDictionary.get(code);
-    }
-
-    /**
-     * Returns a copy of the dictionary. Deleting or adding elements to the list will not modify the dictionary itself
-     * @return a list containing the format values
-     */
-    public List<String> getFormats() {
-        return new ArrayList<>(FORMAT_DICTIONARY);
-//        return formatDictionary.getWordList();
-    }
 }

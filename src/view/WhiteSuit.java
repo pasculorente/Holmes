@@ -20,6 +20,7 @@ package view;
 import core.WTask;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -28,13 +29,21 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class WhiteSuit extends Application {
 
     private final static List<WTask> RUNNING_TASKS = new ArrayList<>();
     private static final Properties properties = new Properties();
+
+    private final static String[] ICON_PATHS = {
+            "img/exomesuite/exomesuite-16.png", "img/exomesuite/exomesuite-24.png", "img/exomesuite/exomesuite-32.png",
+            "img/exomesuite/exomesuite-64.png", "img/exomesuite/exomesuite-128.png", "img/exomesuite/exomesuite-256.png",
+            "img/exomesuite/exomesuite-512.png"
+    };
     private static Stage primaryStage;
     private static MainView mainView;
 
@@ -42,12 +51,29 @@ public class WhiteSuit extends Application {
         launch(args);
     }
 
+    /**
+     * Get the primary stage of the application. Use this stage when prompting some dialogs, or selecting files. Avoid
+     * closing it, or manipulate it in bad manners.
+     *
+     * @return the primary stage of the project
+     */
     public static Stage getPrimaryStage() {
         return primaryStage;
     }
 
+    /**
+     * Executes the WTask in a new Thread. Binds the task to the application, so user is asked before exiting.
+     *
+     * @param task A non-started/non-executed task
+     */
     public static void executeTask(WTask task) {
-        mainView.executeTask(task);
+        if (!task.isCancelled() && !task.isTerminated()) {
+            mainView.executeTask(task);
+            bindToApplication(task);
+        }
+    }
+
+    private static void bindToApplication(WTask task) {
         task.completedProperty().addListener((observable, previous, completed) -> {
             if (completed) RUNNING_TASKS.remove(task);
         });
@@ -62,10 +88,11 @@ public class WhiteSuit extends Application {
     public void start(Stage primaryStage) {
         WhiteSuit.primaryStage = primaryStage;
         loadProperties();
-        mainView = new MainView();
-        final Scene scene = new Scene(mainView);
+        mainView = MainView.getInstance();
         mainView.setPrefSize(800, 600);
+        final Scene scene = new Scene(mainView);
         scene.getStylesheets().add("css/default.css");
+        primaryStage.getIcons().addAll(Arrays.stream(ICON_PATHS).map(Image::new).collect(Collectors.toList()));
         primaryStage.setScene(scene);
         primaryStage.setTitle("ExomeSuite");
         primaryStage.setOnCloseRequest(this::endRunningTasks);
@@ -97,6 +124,10 @@ public class WhiteSuit extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        savePropertiesOnExit();
+    }
+
+    private void savePropertiesOnExit() {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {

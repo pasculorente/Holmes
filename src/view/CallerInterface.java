@@ -35,14 +35,12 @@ import java.io.File;
  */
 public class CallerInterface extends ToolInterface {
 
-    //    private final FileParameter input = new FileParameter(FileParameter.Mode.OPEN, "Alignments");
+    private final FileList inputList = new FileList();
     private final FileParameter genome = new FileParameter(FileParameter.Mode.OPEN, "Reference genome");
     private final FileParameter dbSNP = new FileParameter(FileParameter.Mode.OPEN, "dbSNP");
-    private FileList inputList = new FileList();
 
     public CallerInterface() {
         inputList.getFilters().add(WExtensions.BAM_FILTER);
-//        input.getFilters().add(WExtensions.BAM_FILTER);
         genome.getFilters().add(WExtensions.FASTA_FILTER);
         dbSNP.getFilters().add(WExtensions.VCF_FILTER);
         setBackUp(genome, "reference.genome");

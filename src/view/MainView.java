@@ -43,13 +43,15 @@ import java.util.TimerTask;
  */
 public class MainView extends BorderPane {
 
+    private final static MainView MAIN_VIEW = new MainView();
+
     private final ToolsList toolsList = new ToolsList(this);
     private final Button back = new Button("Tools", new SizableImage("img/arrow-left.png", SizableImage.MEDIUM));
     private final Button start = new Button("Start", new SizableImage("img/start.png", SizableImage.MEDIUM));
     private final TabPane progressPane = new TabPane();
     private final SplitPane splitPane = new SplitPane(toolsList);
 
-    public MainView() {
+    private MainView() {
         toolsList.addTools(new AlignerMenuEntry(), new CallerMenuEntry(), new MistMenuEntry(), new AnnotatorMenuEntry());
         toolsList.setMaxWidth(Double.MAX_VALUE);
         toolsList.getStyleClass().add("tools-list");
@@ -73,6 +75,10 @@ public class MainView extends BorderPane {
         });
         splitPane.setPadding(new Insets(20));
         setCenter(splitPane);
+    }
+
+    public static MainView getInstance() {
+        return MAIN_VIEW;
     }
 
     public void select(ToolInterface selectedItem) {

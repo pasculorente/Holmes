@@ -17,15 +17,20 @@
 
 package core;
 
+import core.gatk.GenomeAnalysisTK;
 import htsjdk.samtools.SAMFileHeader;
 import picard.sam.*;
 import picard.sam.markduplicates.MarkDuplicates;
+import view.WhiteSuit;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Date created 10/02/16
@@ -35,7 +40,9 @@ import java.util.Collections;
 public class Aligner extends WTask {
 
     private final static String[] VOID_ARGS = {};
-    private final static File GATK = new File("lib", "GenomeAnalysisTK.jar");
+//    private final static URL url = WhiteSuit.class.getResource("lib/GenomeAnalysisTK.jar");
+//    private final static File GATK = new File(url.getFile());
+    private final List<File> tempFiles = new ArrayList<>();
     private final static int TOTAL_STEPS = 10;
     private final File forward;
     private final File reverse;
@@ -62,6 +69,7 @@ public class Aligner extends WTask {
 
     @Override
     public void start() {
+        println(GenomeAnalysisTK.getGatk().getAbsolutePath());
         setTitle("Aligning " + output.getName());
         println("Input: ");
         println("forward=" + forward);
@@ -77,6 +85,7 @@ public class Aligner extends WTask {
             println("User canceled aligment");
             setTitle("Error during alignment");
         } else setTitle(output.getName() + " aligned correctly");
+        deleteTempFiles();
     }
 
     private File align() {
@@ -241,7 +250,7 @@ public class Aligner extends WTask {
     private File createTargets(File alignments) {
         try {
             final File targets = createTempFile("targets", ".intervals");
-            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
+            int ret = execute("java", "-jar", GenomeAnalysisTK.getGatk(),
                     "-T", "RealignerTargetCreator",
                     "-R", genome, "-I", alignments,
                     "-known", mills, "-known", phase1,
@@ -256,7 +265,7 @@ public class Aligner extends WTask {
     private File realign(File alignments, File intervals) {
         try {
             final File realignments = createTempFile("realignments", ".bam");
-            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
+            int ret = execute("java", "-jar", GenomeAnalysisTK.getGatk(),
                     "-T", "IndelRealigner",
                     "-R", genome, "-I", alignments,
                     "-known", mills, "-known", phase1,
@@ -278,7 +287,7 @@ public class Aligner extends WTask {
     private File createRecalibratorTable(File alignments) {
         try {
             final File table = createTempFile("recal", null);
-            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
+            int ret = execute("java", "-jar", GenomeAnalysisTK.getGatk().getAbsolutePath(),
                     "-T", "BaseRecalibrator",
                     "-I", alignments,
                     "-R", genome,
@@ -296,7 +305,7 @@ public class Aligner extends WTask {
     private File recalibrate(File alignments, File table) {
         try {
             final File realignments = createTempFile("realignments", ".bam");
-            int ret = execute("java", "-jar", GATK.getAbsolutePath(),
+            int ret = execute("java", "-jar", GenomeAnalysisTK.getGatk(),
                     "-T", "PrintReads",
                     "-R", genome,
                     "-I", alignments,
@@ -320,8 +329,17 @@ public class Aligner extends WTask {
     private File createTempFile(String prefix, String suffix) throws IOException {
         final File tempFile = File.createTempFile(prefix, suffix);
         tempFile.deleteOnExit();
+        tempFiles.add(tempFile);
         return tempFile;
     }
 
+    @Override
+    public void cancel() {
+        super.cancel();
+        deleteTempFiles();
+    }
 
+    private void deleteTempFiles() {
+        tempFiles.forEach(File::delete);
+    }
 }

@@ -27,78 +27,31 @@ import java.util.*;
  */
 public class Variant implements Comparable<Variant> {
 
-    private static final String TRUE = "true";
     private static final List<String> DICTIONARY = new LinkedList<>();
-    private final Map<Integer, Integer> values = new TreeMap<>();
-    private final VcfFile vcfFile;
-    private String chrom, ref, alt, filter;
+
+    private final VariantInfo variantInfo = new VariantInfo();
+
+    private VcfFile vcfFile;
+    private String chrom;
+    private String ref;
+    private String alt;
+    private String filter;
     private int pos;
     private double qual;
     private String id;
     private Map<Integer, Integer>[] formats;
     private int chromIndex;
+    private VariantFormat variantFormat = new VariantFormat();
 
-    /**
-     * Parses the VCF line and creates a Variant.
-     *
-     * @param line    the line to parse
-     * @param vcfFile the owner VcfFile
-     */
-    public Variant(String line, VcfFile vcfFile) {
-        this.vcfFile = vcfFile;
-        final String[] v = line.split("\t");
-        chrom = v[0];
+    Variant(String chrom, int pos, String id, String ref, String alt, double qual, String filter) {
+        this.chrom = chrom;
+        this.pos = pos;
+        this.id = id;
+        this.ref = ref;
+        this.alt = alt;
+        this.qual = qual;
+        this.filter = filter;
         chromIndex = OS.getStandardContigs().indexOf(chrom);
-        pos = Integer.valueOf(v[1]);
-        id = v[2];
-        ref = v[3];
-        alt = v[4];
-        try {
-            qual = Double.valueOf(v[5]);
-        } catch (Exception ignored) {
-        }
-        filter = v[6];
-        setInfos(v[7]);
-        setFormats(v);
-    }
-
-    private void setInfos(String infoField) {
-        final String[] fields = infoField.split(";");
-        for (String field : fields) {
-            if ((field.contains("="))) {
-                final String[] pair = field.split("=");
-                final int key = vcfFile.getHeader().addInfo(pair[0]);
-                final int index = addToDictionary(pair[1]);
-                values.put(key, index);
-            } else {
-                final int key = vcfFile.getHeader().addInfo(field);
-                final int index = addToDictionary(TRUE);
-                values.put(key, index);
-            }
-        }
-    }
-
-    private int addToDictionary(String o) {
-        if (!DICTIONARY.contains(o)) DICTIONARY.add(o);
-        return DICTIONARY.indexOf(o);
-    }
-
-    private void setFormats(String[] v) {
-        if (v.length > 8) {
-            final String[] formatIds = v[8].split(":");
-            for (String format : formatIds) vcfFile.getHeader().addFormat(format);
-            formats = new Map[v.length - 9];
-            for (int i = 9; i < v.length; i++) {
-                final int sampleIndex = i - 9;
-                String[] sample = v[i].split(":");
-                formats[sampleIndex] = new HashMap<>();
-                for (int j = 0; j < sample.length; j++) {
-                    final int formatIndex = vcfFile.getHeader().getFormatIndex(formatIds[j]);
-                    final int valueIndex = addToDictionary(sample[j]);
-                    formats[sampleIndex].put(formatIndex, valueIndex);
-                }
-            }
-        }
     }
 
     /**
@@ -184,20 +137,16 @@ public class Variant implements Comparable<Variant> {
         return vcfFile;
     }
 
-    public Object getInfo(String key) {
-        final int index = vcfFile.getHeader().getInfoIndex(key);
-        final Integer valueIndex = values.get(index);
-        if (valueIndex == null) return null;
-        return DICTIONARY.get(valueIndex);
+    public void setVcfFile(VcfFile vcfFile) {
+        this.vcfFile = vcfFile;
     }
 
-    public Object getFormat(String sample, String key) {
-        final int sampleIndex = vcfFile.getHeader().getSampleIndex(sample);
-        final int formatIndex = vcfFile.getHeader().getFormatIndex(key);
-        if (sampleIndex == -1 || formatIndex == -1) return null;
-        final int valueIndex = formats[sampleIndex].get(formatIndex);
-        if (valueIndex == -1) return true;
-        return DICTIONARY.get(valueIndex);
+    public Object getInfo(String key) {
+        return variantInfo.getInfo(key);
+    }
+
+    public String getFormat(int index, String key) {
+        return variantFormat.getFormat(index, key);
     }
 
     @Override
@@ -214,41 +163,24 @@ public class Variant implements Comparable<Variant> {
     }
 
     private String getInfoString() {
-        final List<String> infos = new ArrayList<>();
-        values.forEach((infoIndex, valueIndex) -> {
-            final String key = vcfFile.getHeader().getInfo(infoIndex);
-            final String value = DICTIONARY.get(valueIndex);
-            if (value != null) {
-                if (value.equals(TRUE)) infos.add(key);
-                else infos.add(key + "=" + value);
-            }
-        });
-        Collections.sort(infos);
-        return OS.asString(";", infos);
+        return variantInfo.toString();
     }
 
     private String getFormatString() {
-        if (formats.length == 0) return "";
-        final StringBuilder builder = new StringBuilder();
-        final List<String> fId = vcfFile.getHeader().getFormats();
-        fId.sort((key1, key2) -> Integer.compare(vcfFile.getHeader().getFormatIndex(key1), vcfFile.getHeader().getFormatIndex(key2)));
-        final List<Integer> formatKeys = new ArrayList<>();
-        for (String formatKey : fId) formatKeys.add(vcfFile.getHeader().getFormatIndex(formatKey));
-        builder.append("\t").append(OS.asString(":", fId));
-        for (Map<Integer, Integer> format : formats) {
-            final List<String> vals = new ArrayList<>();
-            for (int formatIndex : formatKeys)
-                vals.add(DICTIONARY.get(format.getOrDefault(formatIndex, addToDictionary("."))));
-            builder.append("\t").append(OS.asString(":", vals));
-        }
-        return builder.toString();
+        return variantFormat.toString();
     }
 
-    public void setInfo(String key, String value) {
-        final int index = vcfFile.getHeader().getInfoIndex(key);
-        if (index >= 0) {
-            final int valueIndex = addToDictionary(value);
-            values.put(index, valueIndex);
-        }
+    /**
+     * Sets the given info value.
+     *
+     * @param key   info key
+     * @param value info value
+     */
+    public void setInfo(String key, Object value) {
+        variantInfo.setInfo(key, value);
+    }
+
+    public void setFormat(int index, String key, String value) {
+        variantFormat.setFormat(index, key, value);
     }
 }

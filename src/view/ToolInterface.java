@@ -39,5 +39,9 @@ public abstract class ToolInterface extends BorderPane {
         });
     }
 
+    /**
+     * Override this method if you want to start a new Task from this ToolInterface. Usually a call to
+     * <code>WhiteSuite.executeTask()</code> is done within this code.
+     */
     abstract void start();
 }
