@@ -17,8 +17,6 @@
 
 package core.vcf;
 
-import java.util.*;
-
 /**
  * Stores a variant. chrom, pos, ref, alt, filter and format are Strings. pos is an integer, qual a
  * double. Info is stored as a map of key==value. If value is null, key is treated as a flag.
@@ -27,10 +25,9 @@ import java.util.*;
  */
 public class Variant implements Comparable<Variant> {
 
-    private static final List<String> DICTIONARY = new LinkedList<>();
 
+    private final VariantFormat variantFormat = new VariantFormat();
     private final VariantInfo variantInfo = new VariantInfo();
-
     private VcfFile vcfFile;
     private String chrom;
     private String ref;
@@ -39,10 +36,19 @@ public class Variant implements Comparable<Variant> {
     private int pos;
     private double qual;
     private String id;
-    private Map<Integer, Integer>[] formats;
     private int chromIndex;
-    private VariantFormat variantFormat = new VariantFormat();
 
+    /**
+     * This constructor is intended to be used by VariantFactory.
+     *
+     * @param chrom chromosome or contig
+     * @param pos genomic position
+     * @param id usually an rs id
+     * @param ref reference allele sequence
+     * @param alt alternative allele sequence
+     * @param qual quality
+     * @param filter filter
+     */
     Variant(String chrom, int pos, String id, String ref, String alt, double qual, String filter) {
         this.chrom = chrom;
         this.pos = pos;

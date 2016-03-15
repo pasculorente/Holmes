@@ -33,8 +33,6 @@ import javafx.stage.FileChooser;
 import java.io.File;
 
 /**
- * Created by uichuimi on 15/02/16.
- *
  * @author Lorente-Arencibia, Pascual (pasculorente@gmail.com)
  */
 public class MistInterface extends ToolInterface {
@@ -42,13 +40,13 @@ public class MistInterface extends ToolInterface {
     private final static MistInterface MIST_INTERFACE = new MistInterface();
 
     private final FileParameter input = new FileParameter(FileParameter.Mode.OPEN, "Input BAM");
-    private final FileParameter ensembl = new FileParameter(FileParameter.Mode.OPEN, "Ensembl exons (GRCh37)");
+    //    private final FileParameter ensembl = new FileParameter(FileParameter.Mode.OPEN, "Ensembl exons (GRCh37)");
     private final TextField length = new TextField("1");
     private final TextField threshold = new TextField("10");
 
     private MistInterface() {
         input.getFilters().add(WExtensions.BAM_FILTER);
-        setBackUp(ensembl, "ensembl.exons");
+//        setBackUp(ensembl, "ensembl.exons");
 
         length.setOnKeyTyped(this::checkIntegerIntegrity);
         length.setMaxWidth(9999);
@@ -62,7 +60,7 @@ public class MistInterface extends ToolInterface {
         thresholdHBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(threshold, Priority.ALWAYS);
 
-        final VBox vBox = new VBox(DEFAULT_SPACING, input, ensembl, lengthHBox, thresholdHBox);
+        final VBox vBox = new VBox(DEFAULT_SPACING, input, lengthHBox, thresholdHBox);
         vBox.setPadding(new Insets(DEFAULT_PADDING));
 
         final ScrollPane center = new ScrollPane(vBox);
@@ -82,11 +80,11 @@ public class MistInterface extends ToolInterface {
 
     @Override
     void start() {
-        if (input.getFile() == null || ensembl.getFile() == null) return;
+        if (input.getFile() == null) return;
         File output = selectOutput();
         if (output != null) {
             if (!output.getName().endsWith(".mist")) output = new File(output.getParent(), output.getName() + ".mist");
-            final Mist mist = new Mist(input.getFile(), output, ensembl.getFile(), Integer.valueOf(threshold.getText()), Integer.valueOf(length.getText()));
+            final Mist mist = new Mist(input.getFile(), output, Integer.valueOf(threshold.getText()), Integer.valueOf(length.getText()));
             WhiteSuit.executeTask(mist);
         }
     }

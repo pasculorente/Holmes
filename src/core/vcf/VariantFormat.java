@@ -80,19 +80,5 @@ public class VariantFormat {
         builder.append(OS.asString(":", keys));
         for (List<String> list : samples) builder.append("\t").append(OS.asString(":", list));
         return builder.toString();
-//        if (formats.length == 0) return "";
-//        final StringBuilder builder = new StringBuilder();
-//        final List<String> fId = vcfFile.getHeader().getFormats();
-//        fId.sort((key1, key2) -> Integer.compare(vcfFile.getHeader().getFormatIndex(key1), vcfFile.getHeader().getFormatIndex(key2)));
-//        final List<Integer> formatKeys = new ArrayList<>();
-//        for (String formatKey : fId) formatKeys.add(vcfFile.getHeader().getFormatIndex(formatKey));
-//        builder.append("\t").append(OS.asString(":", fId));
-//        for (Map<Integer, Integer> format : formats) {
-//            final List<String> vals = new ArrayList<>();
-//            for (int formatIndex : formatKeys)
-//                vals.add(DICTIONARY.get(format.getOrDefault(formatIndex, addToDictionary("."))));
-//            builder.append("\t").append(OS.asString(":", vals));
-//        }
-//        return builder.toString();
     }
 }

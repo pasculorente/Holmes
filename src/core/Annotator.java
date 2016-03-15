@@ -17,7 +17,6 @@
 
 package core;
 
-import core.vcf.OS;
 import core.vcf.Variant;
 import core.vcf.VcfFile;
 import org.json.JSONArray;
@@ -119,7 +118,6 @@ public class Annotator extends WTask {
     }
 
     private boolean annotateVariants() {
-        vcfFile.setChanged(true);
         final List<Integer> starts = getStarts();
         final AtomicInteger total = new AtomicInteger();
         starts.parallelStream().forEachOrdered(start -> {

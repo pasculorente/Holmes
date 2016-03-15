@@ -17,15 +17,13 @@
 
 package core.vcf;
 
-import javafx.beans.property.Property;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.io.*;
 
 /**
- * Stores in memory a Vcf file data.
+ * Stores in memory a Vcf file data. Variant Call Format (VCF) Version 4.2.
  *
  * @author Lorente Arencibia, Pascual <pasculorente@gmail.com>
  */
@@ -35,16 +33,15 @@ public class VcfFile {
     private final VcfHeader header;
 
     private File file;
-    private Property<Boolean> changed = new SimpleBooleanProperty(false);
 
 
     public VcfFile(File file) {
         this.file = file;
         this.header = new VcfHeader();
-        readFile(file);
+        loadFileContent();
     }
 
-    private void readFile(File file) {
+    private void loadFileContent() {
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             readLines(reader);
         } catch (Exception e) {
@@ -59,7 +56,11 @@ public class VcfFile {
         });
     }
 
-
+    /**
+     * Get the list of variants.
+     *
+     * @return the list of variants
+     */
     public ObservableList<Variant> getVariants() {
         return variants;
     }
@@ -72,14 +73,21 @@ public class VcfFile {
         return header;
     }
 
-    public void setChanged(boolean changed) {
-        this.changed.setValue(changed);
-    }
-
+    /**
+     * Save current data to a file.
+     *
+     * @param file target file
+     */
     public void save(File file) {
         save(file, variants);
     }
 
+    /**
+     * Save list of variants passed by args, using this VCFFile for headers into the file.
+     *
+     * @param file     target file
+     * @param variants list of variants
+     */
     public void save(File file, ObservableList<Variant> variants) {
         if (file.exists() && !file.delete()) System.err.println("No access on " + file);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {

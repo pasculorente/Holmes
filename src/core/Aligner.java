@@ -40,8 +40,6 @@ import java.util.List;
 public class Aligner extends WTask {
 
     private final static String[] VOID_ARGS = {};
-//    private final static URL url = WhiteSuit.class.getResource("lib/GenomeAnalysisTK.jar");
-//    private final static File GATK = new File(url.getFile());
     private final List<File> tempFiles = new ArrayList<>();
     private final static int TOTAL_STEPS = 10;
     private final File forward;

@@ -24,26 +24,30 @@ import java.util.*;
  */
 public class VariantInfo {
 
-    private final static List<Object> DICTIONARY = new ArrayList<>();
+    private final static List<String> DICTIONARY = new ArrayList<>();
 
-    private final Map<Integer, Integer> properties = new HashMap<>();
 
+    private final Map<Integer, Object> values = new HashMap<>();
+
+    private final Map<Integer, Integer> stringValues = new HashMap<>();
 
     public void setInfo(String key, Object value) {
         final int keyIndex = addToDictionary(key);
-        final int valueIndex = addToDictionary(value);
-        properties.put(keyIndex, valueIndex);
+        if (value.getClass().equals(String.class)) {
+            final int valueIndex = addToDictionary((String) value);
+            stringValues.put(keyIndex, valueIndex);
+        } else values.put(keyIndex, value);
     }
 
     public Object getInfo(String key) {
         final int keyIndex = DICTIONARY.indexOf(key);
         if (keyIndex < 0) return null;
-        final int valueIndex = properties.getOrDefault(keyIndex, -1);
-        if (valueIndex < 0) return null;
-        return DICTIONARY.get(valueIndex);
+        if (values.containsKey(keyIndex)) return values.get(keyIndex);
+        if (stringValues.containsKey(keyIndex)) return DICTIONARY.get(stringValues.get(keyIndex));
+        return null;
     }
 
-    private int addToDictionary(Object value) {
+    private int addToDictionary(String value) {
         if (!DICTIONARY.contains(value)) DICTIONARY.add(value);
         return DICTIONARY.indexOf(value);
     }
@@ -63,13 +67,15 @@ public class VariantInfo {
     @Override
     public String toString() {
         final List<String> infos = new ArrayList<>();
-        properties.forEach((keyIndex, valueIndex) -> {
-            final String key = (String) DICTIONARY.get(keyIndex);
-            final Object value = DICTIONARY.get(valueIndex);
-            if (value != null) {
-                if (value.getClass().equals(Boolean.class)) infos.add(key);
-                else infos.add(key + "=" + value.toString());
-            }
+        values.forEach((keyIndex, value) -> {
+            final String key = DICTIONARY.get(keyIndex);
+            if (value.getClass().equals(Boolean.class)) infos.add(key);
+            else infos.add(key + "=" + value.toString());
+        });
+        stringValues.forEach((keyIndex, valueIndex) -> {
+            final String key = DICTIONARY.get(keyIndex);
+            final String value = DICTIONARY.get(valueIndex);
+            infos.add(key + "=" + value);
         });
         Collections.sort(infos);
         return OS.asString(";", infos);

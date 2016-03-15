@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Created by uichuimi on 15/02/16.
@@ -37,14 +38,11 @@ import java.util.logging.Logger;
 public class Mist extends WTask {
 
 
-    private final File input, output, ensembl;
-    private final int threshold, length;
     private final static int WINDOW_SIZE = 10;
     private final static String INSIDE = "inside";
     private final static String OVERLAP = "overlap";
     private final static String LEFT = "left";
     private final static String RIGHT = "right";
-
     // chrom | start | end | gene_id | gene_name | exon_number | transcript_id | transcript_name |
     // transcript_info | gene_biotype
     private final static int EXON_CHR = 0;
@@ -57,9 +55,11 @@ public class Mist extends WTask {
     private final static int TRANS_NAME = 7;
     private final static int TRANS_INFO = 8;
     private final static int GENE_BIO = 9;
-
+    final String[] headers = {"chrom", "exon_start", "exon_end", "mist_start", "mist_end",
+            "gene_id", "gene_name", "exon_number", "exon_id", "transcript_name", "biotype", "match"};
+    private final File input, output;
+    private final int threshold, length;
     private long genomeLength;
-
     private long startTime;
     private List<Chromosome> chromosomes;
     private Process process;
@@ -69,21 +69,23 @@ public class Mist extends WTask {
      *
      * @param input     the input BAM
      * @param output    the output MIST
-     * @param ensembl   the ensembl database
      * @param threshold the DP threshold
      * @param length    the minimum length
      */
-    public Mist(File input, File output, File ensembl, int threshold, int length) {
+    public Mist(File input, File output, int threshold, int length) {
         this.input = input;
         this.output = output;
-        this.ensembl = ensembl;
         this.threshold = threshold;
         this.length = length;
     }
 
-    final String[] headers = {"chrom", "exon_start", "exon_end", "mist_start", "mist_end",
-            "gene_id", "gene_name", "exon_number", "exon_id", "transcript_name", "biotype", "match"};
-
+    public static String asString(String separator, String... values) {
+        if (values.length == 0) return "";
+        String s = values[0];
+        int i = 1;
+        while (i < values.length) s += separator + values[i++];
+        return s;
+    }
 
     /*
      * IMPORTANT NOTE FOR DEVELOPERS. Genomic positions start at 1, Java array positions start at 0.
@@ -128,17 +130,19 @@ public class Mist extends WTask {
         AtomicInteger matches = new AtomicInteger();
 
         // Read the exons file
-        try (BufferedReader reader = new BufferedReader(new FileReader(ensembl))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(Mist.class.getResourceAsStream("HomoSapiens_v75_protein_coding.tsv.gz"))))) {
             // Skip first line
             reader.readLine();
-            reader.lines().forEach(line -> {
-                String[] exon = line.split("\t");
-                String chr = exon[0];
+            reader.lines().map(line -> line.split("\t")).forEach(exon -> {
+                final String chr = exon[0];
                 // Call next chromosome
                 if (!currentChromosome.get().equals(chr)) {
                     // Load new chromosome in memory, replacing current
                     depths.set(readBamContent(chr, matches.get()));
                     // Mark chromosome as read
+//                    chromosomes.stream()
+//                            .filter(chromosome -> chromosome.name.equals(chr))
+//                            .forEach(chromosome -> chromosome.processed = true);
                     for (Chromosome c : chromosomes) {
                         if (c.name.equals(chr)) {
                             c.processed = true;
@@ -156,14 +160,10 @@ public class Mist extends WTask {
                 // Set the window size [start - WS, end + WS]
                 // Start can not be smaller than 1
                 int windowStart = start - WINDOW_SIZE;
-                if (windowStart < 1) {
-                    windowStart = 1;
-                }
+                if (windowStart < 1) windowStart = 1;
                 // End cannot be greater than chromosome
                 int windowEnd = end + WINDOW_SIZE;
-                if (windowEnd >= depths.get().length) {
-                    windowEnd = depths.get().length - 1;
-                }
+                if (windowEnd >= depths.get().length) windowEnd = depths.get().length - 1;
                 // Fill a TreeMap with <pos, dp>
                 TreeMap<Integer, Integer> dp = new TreeMap<>();
                 for (int i = windowStart; i <= windowEnd && i < depths.get().length; i++) {
@@ -233,25 +233,19 @@ public class Mist extends WTask {
             if (depth < threshold) {
                 // If the depth is under the threshold, and previously no mist region,
                 // set the start of the mist region
-                if (inMist.compareAndSet(false, true)) {
-                    mistStart.set(position);
-                }
+                if (inMist.compareAndSet(false, true)) mistStart.set(position);
             } else {
                 // If the depth is over threshold, and a mist region was in progress
                 // Set the end of the region and inform
                 if (inMist.compareAndSet(true, false)) {
                     mistEnd.set(position);
-                    if (printMist(exon, mistStart.get(), mistEnd.get())) {
-                        matches.incrementAndGet();
-                    }
+                    if (printMist(exon, mistStart.get(), mistEnd.get())) matches.incrementAndGet();
                 }
             }
         });
         if (inMist.get()) {
             mistEnd.set(depths.lastKey());
-            if (printMist(exon, mistStart.get(), mistEnd.get())) {
-                matches.incrementAndGet();
-            }
+            if (printMist(exon, mistStart.get(), mistEnd.get())) matches.incrementAndGet();
         }
         return matches.get();
     }
@@ -291,19 +285,9 @@ public class Mist extends WTask {
      * @return left, rigth, inside or overlap
      */
     private String determineMatch(int exonStart, int exonEnd, int mistStart, int mistEnd) {
-        if (mistStart < exonStart) {
-            if (mistEnd > exonEnd) {
-                return OVERLAP;
-            } else {
-                return LEFT;
-            }
-        } else {
-            if (mistEnd > exonEnd) {
-                return RIGHT;
-            } else {
-                return INSIDE;
-            }
-        }
+        return (mistStart < exonStart)
+                ? ((mistEnd > exonEnd) ? OVERLAP : LEFT)
+                : ((mistEnd > exonEnd) ? RIGHT : INSIDE);
     }
 
     private void calculateProgress(String chr, int pos, int matches) {
@@ -329,9 +313,7 @@ public class Mist extends WTask {
         millis -= TimeUnit.MINUTES.toMillis(minutes);
         long seconds = TimeUnit.MILLISECONDS.toSeconds(millis);
         String ret = "";
-        if (days > 0) {
-            ret += days + " d ";
-        }
+        if (days > 0) ret += days + " d ";
         ret += String.format("%02d:%02d:%02d", hours, minutes, seconds);
         return ret;
     }
@@ -355,9 +337,9 @@ public class Mist extends WTask {
             return null;
         }
         int[] depths = new int[le + 1];
-        ProcessBuilder pb = new ProcessBuilder("samtools", "mpileup", "-r", chr,
+        final ProcessBuilder pb = new ProcessBuilder("samtools", "mpileup", "-r", chr,
                 input.getAbsolutePath());
-        AtomicInteger iterations = new AtomicInteger();
+        final AtomicInteger iterations = new AtomicInteger();
         try {
             process = pb.start();
             try (BufferedReader command
@@ -411,6 +393,11 @@ public class Mist extends WTask {
         return chroms;
     }
 
+    @Override
+    public void cancel() {
+        super.cancel();
+        if (process != null) process.destroy();
+    }
 
     /**
      * Tiny class to store together a chrom with its length and an already processed flag. This is
@@ -427,19 +414,5 @@ public class Mist extends WTask {
             this.length = length;
         }
 
-    }
-
-    public static String asString(String separator, String... values) {
-        if (values.length == 0) return "";
-        String s = values[0];
-        int i = 1;
-        while (i < values.length) s += separator + values[i++];
-        return s;
-    }
-
-    @Override
-    public void cancel() {
-        super.cancel();
-        if (process != null) process.destroy();
     }
 }
